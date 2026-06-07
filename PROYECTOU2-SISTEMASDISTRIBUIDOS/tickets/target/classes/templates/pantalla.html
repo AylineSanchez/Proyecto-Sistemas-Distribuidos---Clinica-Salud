@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<!-- 
+    ============================================
+    PANTALLA DE SALA DE ESPERA
+    Clínica Salud - Sistema de Atención
+    ============================================
+    Esta pantalla muestra a los pacientes:
+    1. El ticket que está siendo llamado actualmente
+    2. El módulo al que deben dirigirse
+    3. La lista de tickets que están actualmente siendo llamados
+       (en estado "llamado" en lugar de "pendiente")
+    
+    La comunicación es en tiempo real mediante WebSocket.
+-->
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Pantalla de Atención - Clínica Salud</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .display-container { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        .header { text-align: center; padding: 40px 20px; color: white; }
+        .header h1 { font-size: 48px; }
+        .header p { font-size: 24px; }
+        .ticket-display { font-size: 120px; font-weight: 800; color: white; text-shadow: 3px 3px 6px rgba(0,0,0,0.3); margin: 20px 0; background: rgba(0,0,0,0.2); padding: 20px 40px; border-radius: 30px; transition: all 0.3s ease; }
+        .modulo-display { font-size: 24px; color: white; margin-bottom: 40px; background: rgba(0,0,0,0.2); padding: 15px 30px; border-radius: 50px; }
+        .colita { max-width: 600px; margin-top: 50px; background: white; border-radius: 20px; padding: 20px; width: 90%; }
+        .colita h3 { color: #2d3748; margin-bottom: 15px; }
+        .colita-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 18px; }
+        .colita-item .modulo-badge { background: #48bb78; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .colita-item .modulo-badge.laboratorio { background: #4299e1; }
+        .colita-item .modulo-badge.ventanilla { background: #ed8936; }
+        .empty-message { text-align: center; padding: 20px; color: #718096; }
+        .alert-status { display: none; }  /* Oculto - eliminado de la interfaz */
+    </style>
+</head>
+<body>
+    <div class="display-container">
+        <!-- ENCABEZADO -->
+        <div class="header">
+            <h1>🏥 Clínica Salud</h1>
+            <p>Sistema de Atención al Paciente</p>
+        </div>
+        
+        <!-- TICKET ACTUALMENTE LLAMADO (se muestra en grande) -->
+        <div class="ticket-display" id="ultimoTicket">---</div>
+        <div class="modulo-display" id="ultimoModulo">Esperando llamado...</div>
+        
+        <!-- LISTA DE TICKETS EN ESTADO LLAMADO -->
+        <div class="colita">
+            <h3>📢 Tickets en Atención</h3>
+            <div id="listaEspera"></div>
+        </div>
+        
+        <!-- Estado de conexión (oculto) -->
+        <div id="status" class="alert-status"></div>
+    </div>
+    
+    <!-- LIBRERÍAS DE WEB SOCKET -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    
+    <script>
+        // ============================================
+        // VARIABLES GLOBALES
+        // ============================================
+        let stompClient = null;        // Cliente WebSocket
+        let colaLlamados = [];          // Cola de tickets esperando ser mostrados
+        let mostrando = false;          // Indica si se está mostrando un ticket actualmente
+        let intervalTimer = null;       // Timer para el contador regresivo
+        
+        // ============================================
+        // OBTENER CLASE CSS PARA EL MÓDULO
+        // ============================================
+        function getModuloClass(modulo) {
+            if (!modulo) return '';
+            if (modulo.includes('Médico')) return 'modulo-badge';
+            if (modulo.includes('Laboratorio')) return 'modulo-badge laboratorio';
+            if (modulo.includes('Ventanilla')) return 'modulo-badge ventanilla';
+            return 'modulo-badge';
+        }
+        
+        // ============================================
+        // LIMPIAR PANTALLA
+        // ============================================
+        function limpiarPantalla() {
+            // Limpiar el ticket actual
+            document.getElementById('ultimoTicket').innerHTML = '---';
+            document.getElementById('ultimoModulo').innerHTML = 'Esperando llamado...';
+            
+            // Limpiar la cola de llamados pendientes
+            colaLlamados = [];
+            if (intervalTimer) {
+                clearInterval(intervalTimer);
+                intervalTimer = null;
+            }
+            mostrando = false;
+            
+            // Actualizar la lista de llamados
+            cargarListaLlamados();
+        }
+        
+        // ============================================
+        // MOSTRAR SIGUIENTE TICKET EN COLA
+        // ============================================
+        function mostrarSiguienteEnCola() {
+            if (mostrando) return;
+            if (colaLlamados.length === 0) return;
+            
+            const ticket = colaLlamados.shift();
+            mostrando = true;
+            
+            // Mostrar ticket
+            document.getElementById('ultimoTicket').innerHTML = ticket.numeroTicket;
+            document.getElementById('ultimoModulo').innerHTML = `📢 ${ticket.moduloAsignado || ticket.moduloDestino || 'Módulo'} - ${ticket.nombrePaciente || 'Paciente'}`;
+            
+            // Animación de entrada
+            const el = document.getElementById('ultimoTicket');
+            el.style.transform = 'scale(1.1)';
+            setTimeout(() => el.style.transform = 'scale(1)', 200);
+            
+            // Contador regresivo de 5 segundos
+            let segundosRestantes = 5;
+            
+            if (intervalTimer) clearInterval(intervalTimer);
+            
+            intervalTimer = setInterval(() => {
+                segundosRestantes--;
+                if (segundosRestantes <= 0) {
+                    clearInterval(intervalTimer);
+                    intervalTimer = null;
+                    mostrando = false;
+                    mostrarSiguienteEnCola();
+                }
+            }, 1000);
+            
+            cargarListaLlamados();
+        }
+        
+        // ============================================
+        // AGREGAR TICKET A LA COLA DE VISUALIZACIÓN
+        // ============================================
+        function agregarALaCola(ticket) {
+            colaLlamados.push(ticket);
+            if (!mostrando && colaLlamados.length === 1) {
+                mostrarSiguienteEnCola();
+            }
+        }
+        
+        // ============================================
+        // CARGAR LISTA DE TICKETS EN ESTADO LLAMADO
+        // ============================================
+        async function cargarListaLlamados() {
+            try {
+                const response = await fetch('/api/cola');
+                if (!response.ok) throw new Error('Error en la respuesta');
+                const cola = await response.json();
+                console.log('📊 Cola actual:', cola);
+                
+                // Mostrar SOLO tickets en estado "llamado"
+                const llamados = cola.filter(t => t.estado === 'llamado');
+                const container = document.getElementById('listaEspera');
+                
+                if (!container) return;
+                
+                if (llamados.length === 0) {
+                    container.innerHTML = '<div class="empty-message">No hay tickets en atención actualmente</div>';
+                } else {
+                    container.innerHTML = llamados.map(t => `
+                        <div class="colita-item">
+                            <strong>${t.numeroTicket}</strong>
+                            <span>${t.tipoAtencion}</span>
+                            <span class="${getModuloClass(t.moduloAsignado || t.moduloDestino)}">
+                                ${t.moduloAsignado || t.moduloDestino || 'Módulo'}
+                            </span>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('❌ Error cargando lista:', error);
+                const container = document.getElementById('listaEspera');
+                if (container) {
+                    container.innerHTML = '<div class="empty-message">Error cargando datos</div>';
+                }
+            }
+        }
+        
+        // ============================================
+        // CONEXIÓN WEB SOCKET
+        // ============================================
+        function connectWebSocket() {
+            if (typeof SockJS === 'undefined' || typeof Stomp === 'undefined') {
+                setTimeout(connectWebSocket, 2000);
+                return;
+            }
+            
+            try {
+                var socket = new SockJS('/ws-tickets');
+                stompClient = Stomp.over(socket);
+                
+                stompClient.connect({}, function(frame) {
+                    console.log('✅ Pantalla WebSocket conectado:', frame);
+                    
+                    // Escuchar cuando se llama un ticket
+                    stompClient.subscribe('/topic/llamado-ticket', function(ticketData) {
+                        console.log('📢 Evento recibido (llamado):', ticketData);
+                        try {
+                            const ticket = JSON.parse(ticketData.body);
+                            console.log('✅ Ticket llamado:', ticket);
+                            agregarALaCola(ticket);
+                        } catch (error) {
+                            console.error('❌ Error parseando ticket:', error);
+                        }
+                    });
+                    
+                    // Escuchar cuando se atiende o RESETEA un ticket
+                    stompClient.subscribe('/topic/atendido-ticket', function(ticketData) {
+                        console.log('📢 Evento recibido (atendido/reseteado):', ticketData);
+                        limpiarPantalla();
+                    });
+                    
+                    // Escuchar cuando se crea un nuevo ticket (actualiza la lista)
+                    stompClient.subscribe('/topic/nuevo-ticket', function() {
+                        console.log('📢 Nuevo ticket - actualizando lista');
+                        cargarListaLlamados();
+                    });
+                    
+                }, function(error) {
+                    console.error('❌ Error WebSocket:', error);
+                    setTimeout(connectWebSocket, 5000);
+                });
+            } catch (error) {
+                console.error('❌ Error:', error);
+                setTimeout(connectWebSocket, 5000);
+            }
+        }
+        
+        // ============================================
+        // INICIALIZACIÓN
+        // ============================================
+        connectWebSocket();        // Conectar WebSocket
+        cargarListaLlamados();     // Cargar lista inicial de tickets llamados
+        setInterval(cargarListaLlamados, 3000); // Actualizar cada 3 segundos
+    </script>
+</body>
+</html>

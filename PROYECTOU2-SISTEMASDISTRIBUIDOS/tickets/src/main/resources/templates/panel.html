@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<!-- 
+    ============================================
+    PANEL DE ATENCIÓN
+    Clínica Salud - Sistema de Atención
+    ============================================
+-->
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Atención - Clínica Salud</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/estilo.css}">
+    <style>
+        /* Estilos adicionales para asegurar el botón */
+        .btn-iniciar-atencion {
+            background: white !important;
+            color: #38a169 !important;
+            border: none !important;
+            padding: 12px 28px !important;
+            border-radius: 50px !important;
+            font-size: 16px !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            transition: all 0.3s ease !important;
+            display: block !important;
+            margin: 20px auto 0 auto !important;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1) !important;
+        }
+        .btn-iniciar-atencion:hover {
+            transform: scale(1.05) !important;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2) !important;
+            background: #f0f0f0 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 Panel de Atención</h1>
+            <p>Sistema de gestión de pacientes</p>
+        </div>
+
+        <div class="modulo-selector">
+            <label>📋 Seleccionar Módulo:</label>
+            <select id="moduloActual" onchange="cambiarModulo()">
+                <option value="Médico 1">👨‍⚕️ Médico 1 - Consulta 1</option>
+                <option value="Médico 2">👨‍⚕️ Médico 2 - Consulta 2</option>
+                <option value="Médico 3">👨‍⚕️ Médico 3 - Consulta 3</option>
+                <option value="Laboratorio A">🔬 Laboratorio A - Toma de Muestras</option>
+                <option value="Laboratorio B">🔬 Laboratorio B - Toma de Muestras</option>
+                <option value="Ventanilla 1">📋 Ventanilla 1 - Retiro de Resultados</option>
+                <option value="Ventanilla 2">📋 Ventanilla 2 - Retiro de Resultados</option>
+            </select>
+            <div class="modulo-info" id="moduloInfo">Seleccione un módulo</div>
+            <button class="refresh-btn" onclick="cargarCola()">🔄 Actualizar</button>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-card"><div class="stat-value" id="enEspera">0</div><div class="stat-label">En Espera</div></div>
+            <div class="stat-card"><div class="stat-value" id="atendidosHoy">0</div><div class="stat-label">Atendidos Hoy</div></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h2>📋 Cola de Atención</h2></div>
+            <div class="table-container">
+                <table id="colaTable">
+                    <thead>
+                        <tr><th>Ticket</th><th>Tipo</th><th>Paciente</th><th>Estado</th><th>Acción</th></tr>
+                    </thead>
+                    <tbody id="colaBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TARJETA DE PRÓXIMO A ATENDER -->
+        <div id="llamadoCard" class="llamado-card" style="display: none;">
+            <div class="card-header"><h2>🔔 Próximo a Atender</h2></div>
+            <div class="ticket-grande" id="ticketLlamado">---</div>
+            <div class="paciente-info" id="pacienteLlamado"></div>
+            <button class="btn-iniciar-atencion" id="btnAtender" onclick="atenderTicket()">✓ Iniciar Atención</button>
+        </div>
+
+        <button class="btn-primary btn-large" id="btnLlamarSiguiente" onclick="llamarSiguiente()">📢 Llamar Siguiente</button>
+
+        <div class="info-box"><span>ℹ️</span><span id="infoFiltro"></span></div>
+    </div>
+
+    <!-- MODAL DE RESET -->
+    <div id="resetModal" class="modal-overlay" style="display: none;">
+        <div class="modal-container">
+            <div class="modal-header"><div class="modal-icon">↺</div><h3>Resetear Ticket</h3></div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que deseas resetear este ticket?</p>
+                <div class="ticket-info">
+                    <div class="ticket-number" id="modalTicketNumero">---</div>
+                    <div class="ticket-patient" id="modalTicketPaciente">---</div>
+                </div>
+                <div class="warning-text">⚠️ El ticket volverá a estado <strong>Pendiente</strong></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancelar" onclick="cerrarModalReset()">Cancelar</button>
+                <button class="btn-confirmar" onclick="confirmarReset()">↺ Resetear Ticket</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+    <script>
+        // ============================================
+        // VARIABLES GLOBALES
+        // ============================================
+        let ticketActual = null;
+        let stompClient = null;
+        let ticketsList = [];
+        let pendingResetTicket = null;
+        let atendidosModulo = 0;
+        let moduloActualNombre = "Médico 1";
+        let moduloOcupado = false;
+        
+        // ============================================
+        // LIMPIAR TARJETA DE LLAMADO
+        // ============================================
+        function limpiarTarjetaLlamado() {
+            document.getElementById('llamadoCard').style.display = 'none';
+            ticketActual = null;
+            document.getElementById('ticketLlamado').innerHTML = '---';
+            document.getElementById('pacienteLlamado').innerHTML = '';
+        }
+        
+        // ============================================
+        // CAMBIAR MÓDULO
+        // ============================================
+        function cambiarModulo() {
+            moduloActualNombre = document.getElementById('moduloActual').value;
+            document.getElementById('infoFiltro').innerHTML = `Módulo: ${moduloActualNombre}`;
+            
+            // IMPORTANTE: Limpiar tarjeta de llamado al cambiar de módulo
+            limpiarTarjetaLlamado();
+            
+            cargarCola();
+            actualizarEstadoModulo();
+        }
+        
+        // ============================================
+        // ACTUALIZAR ESTADO DEL MÓDULO
+        // ============================================
+        async function actualizarEstadoModulo() {
+            try {
+                const response = await fetch(`/api/en-espera/modulo?modulo=${encodeURIComponent(moduloActualNombre)}`);
+                const data = await response.json();
+                moduloOcupado = data.ocupado;
+                document.getElementById('enEspera').innerText = data.cantidad;
+                
+                if (moduloOcupado) {
+                    document.getElementById('moduloInfo').classList.add('ocupado');
+                    document.getElementById('moduloInfo').innerHTML = `⚠️ ${moduloActualNombre} - OCUPADO`;
+                    document.getElementById('btnLlamarSiguiente').disabled = true;
+                    document.getElementById('btnLlamarSiguiente').style.opacity = '0.5';
+                } else {
+                    document.getElementById('moduloInfo').classList.remove('ocupado');
+                    document.getElementById('moduloInfo').innerHTML = `✅ ${moduloActualNombre} - DISPONIBLE`;
+                    document.getElementById('btnLlamarSiguiente').disabled = false;
+                    document.getElementById('btnLlamarSiguiente').style.opacity = '1';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        // ============================================
+        // CONEXIÓN WEB SOCKET
+        // ============================================
+        function connectWebSocket() {
+            if (typeof SockJS === 'undefined' || typeof Stomp === 'undefined') {
+                setTimeout(connectWebSocket, 2000);
+                return;
+            }
+            var socket = new SockJS('/ws-tickets');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function(frame) {
+                console.log('✅ WebSocket conectado');
+                
+                stompClient.subscribe('/topic/llamado-ticket', function(ticket) {
+                    const t = JSON.parse(ticket.body);
+                    if (t.moduloDestino === moduloActualNombre) {
+                        mostrarLlamado(t);
+                    }
+                    cargarCola();
+                    actualizarEstadoModulo();
+                });
+                
+                stompClient.subscribe('/topic/atendido-ticket', function() {
+                    cargarCola();
+                    actualizarEstadoModulo();
+                    limpiarTarjetaLlamado();
+                });
+                
+                stompClient.subscribe('/topic/nuevo-ticket', function() {
+                    cargarCola();
+                    actualizarEstadoModulo();
+                });
+            });
+        }
+        
+        // ============================================
+        // CARGAR COLA
+        // ============================================
+        async function cargarCola() {
+            try {
+                const response = await fetch(`/api/cola/modulo?modulo=${encodeURIComponent(moduloActualNombre)}`);
+                const cola = await response.json();
+                ticketsList = cola;
+                const pendientes = cola.filter(t => t.estado === 'pendiente').length;
+                document.getElementById('enEspera').innerText = pendientes;
+                
+                const tbody = document.getElementById('colaBody');
+                tbody.innerHTML = '';
+                
+                if (cola.length === 0) {
+                    const row = tbody.insertRow();
+                    row.insertCell(0).colSpan = 5;
+                    row.insertCell(0).innerHTML = '<div style="text-align:center; padding:20px;">No hay tickets asignados a este módulo</div>';
+                } else {
+                    cola.forEach(t => {
+                        const row = tbody.insertRow();
+                        row.insertCell(0).innerHTML = `<strong>${t.numeroTicket}</strong>`;
+                        row.insertCell(1).innerText = t.tipoAtencion;
+                        row.insertCell(2).innerText = t.nombrePaciente || '---';
+                        
+                        let estadoText = '';
+                        if (t.estado === 'pendiente') estadoText = '<span class="badge pending">⏳ Pendiente</span>';
+                        else if (t.estado === 'llamado') estadoText = '<span class="badge calling">📢 Llamado</span>';
+                        else if (t.estado === 'en_atencion') estadoText = '<span class="badge attending">🩺 En Atención</span>';
+                        else if (t.estado === 'atendido') estadoText = '<span class="badge done">✅ Atendido</span>';
+                        else estadoText = `<span class="badge pending">${t.estado}</span>`;
+                        row.insertCell(3).innerHTML = estadoText;
+                        
+                        const accionesCell = document.createElement('td');
+                        accionesCell.className = 'acciones-cell';
+                        if (t.estado === 'pendiente' && !moduloOcupado) {
+                            accionesCell.innerHTML = `<button class="btn-sm btn-llamar" onclick="llamarTicketEspecifico('${t.numeroTicket}')">📢 Llamar</button>`;
+                        } else if (t.estado === 'llamado') {
+                            accionesCell.innerHTML = `
+                                <button class="btn-sm btn-atender" onclick="atenderTicketDirecto(${t.id})">🩺 Atender</button>
+                                <button class="btn-sm btn-reset" onclick="resetearTicket('${t.numeroTicket}')">↺ Reset</button>
+                            `;
+                        } else {
+                            accionesCell.innerHTML = '<span style="color:#888;">---</span>';
+                        }
+                        row.appendChild(accionesCell);
+                    });
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        // ============================================
+        // LLAMAR SIGUIENTE
+        // ============================================
+        async function llamarSiguiente() {
+            if (moduloOcupado) {
+                mostrarNotificacionAdvertencia(`⚠️ ${moduloActualNombre} ya está atendiendo a un paciente`);
+                return;
+            }
+            try {
+                const ticketsPendientes = ticketsList.filter(t => t.estado === 'pendiente');
+                if (ticketsPendientes.length === 0) {
+                    mostrarNotificacionInfo(`📋 No hay tickets pendientes para ${moduloActualNombre}`);
+                    return;
+                }
+                const ticket = ticketsPendientes[0];
+                const response = await fetch(`/api/llamar/${ticket.id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ modulo: moduloActualNombre })
+                });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    if (errorText.includes("OCUPADO")) mostrarNotificacionAdvertencia(`⚠️ ${moduloActualNombre} ya está atendiendo a un paciente`);
+                    else if (errorText.includes("NO_AUTORIZADO")) mostrarNotificacionError(`🔒 Este ticket no está asignado a ${moduloActualNombre}`);
+                    else mostrarNotificacionError(`❌ Error: ${errorText}`);
+                    return;
+                }
+                const ticketLlamado = await response.json();
+                mostrarNotificacionExito(`✅ Ticket ${ticketLlamado.numeroTicket} llamado`);
+                mostrarLlamado(ticketLlamado);
+                await cargarCola();
+                await actualizarEstadoModulo();
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarNotificacionError(`❌ Error al llamar ticket`);
+            }
+        }
+        
+        // ============================================
+        // LLAMAR TICKET ESPECÍFICO
+        // ============================================
+        async function llamarTicketEspecifico(numeroTicket) {
+            if (moduloOcupado) {
+                mostrarNotificacionAdvertencia(`⚠️ ${moduloActualNombre} ya está atendiendo a un paciente`);
+                return;
+            }
+            try {
+                const ticket = ticketsList.find(t => t.numeroTicket === numeroTicket);
+                if (!ticket) { mostrarNotificacionError('Ticket no encontrado'); return; }
+                const response = await fetch(`/api/llamar/${ticket.id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ modulo: moduloActualNombre })
+                });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    if (errorText.includes("OCUPADO")) mostrarNotificacionAdvertencia(`⚠️ ${moduloActualNombre} ya está atendiendo a un paciente`);
+                    else if (errorText.includes("NO_AUTORIZADO")) mostrarNotificacionError(`🔒 Este ticket no está asignado a ${moduloActualNombre}`);
+                    else mostrarNotificacionError(`❌ Error: ${errorText}`);
+                    return;
+                }
+                const ticketLlamado = await response.json();
+                mostrarNotificacionExito(`✅ Ticket ${ticketLlamado.numeroTicket} llamado`);
+                mostrarLlamado(ticketLlamado);
+                await cargarCola();
+                await actualizarEstadoModulo();
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarNotificacionError(`❌ Error al llamar ticket`);
+            }
+        }
+        
+        // ============================================
+        // MOSTRAR TICKET LLAMADO
+        // ============================================
+        function mostrarLlamado(ticket) {
+            ticketActual = ticket;
+            document.getElementById('ticketLlamado').innerHTML = ticket.numeroTicket;
+            document.getElementById('pacienteLlamado').innerHTML = `<strong>${ticket.tipoAtencion}</strong><br>${ticket.nombrePaciente || 'Paciente'}`;
+            document.getElementById('llamadoCard').style.display = 'block';
+        }
+        
+        // ============================================
+        // ATENDER TICKET
+        // ============================================
+        async function atenderTicket() { 
+            if (ticketActual) await atenderTicketDirecto(ticketActual.id); 
+        }
+        
+        async function atenderTicketDirecto(ticketId) {
+            try {
+                const response = await fetch(`/api/atender/${ticketId}`, { method: 'POST' });
+                if (!response.ok) throw new Error('Error al atender');
+                limpiarTarjetaLlamado();
+                await cargarCola();
+                await actualizarEstadoModulo();
+                atendidosModulo++;
+                document.getElementById('atendidosHoy').innerText = atendidosModulo;
+                mostrarNotificacionExito('✅ Ticket atendido correctamente');
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarNotificacionError('❌ Error al atender ticket');
+            }
+        }
+        
+        // ============================================
+        // RESETEAR TICKET
+        // ============================================
+        function resetearTicket(numeroTicket) {
+            const ticket = ticketsList.find(t => t.numeroTicket === numeroTicket);
+            if (!ticket) { alert('Ticket no encontrado'); return; }
+            pendingResetTicket = numeroTicket;
+            document.getElementById('modalTicketNumero').innerText = ticket.numeroTicket;
+            document.getElementById('modalTicketPaciente').innerHTML = `${ticket.tipoAtencion}<br>${ticket.nombrePaciente || 'Paciente'}`;
+            document.getElementById('resetModal').style.display = 'flex';
+        }
+        
+        function cerrarModalReset() { 
+            document.getElementById('resetModal').style.display = 'none'; 
+            pendingResetTicket = null; 
+        }
+        
+        async function confirmarReset() {
+            if (!pendingResetTicket) return;
+            document.getElementById('resetModal').style.display = 'none';
+            try {
+                const response = await fetch(`/api/resetear/${pendingResetTicket}`, { method: 'POST' });
+                if (!response.ok) throw new Error('Error al resetear');
+                await response.json();
+                mostrarNotificacionExito(`↺ Ticket ${pendingResetTicket} reseteado`);
+                limpiarTarjetaLlamado();
+                await cargarCola();
+                await actualizarEstadoModulo();
+                pendingResetTicket = null;
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarNotificacionError('❌ Error al resetear ticket');
+            }
+        }
+        
+        // ============================================
+        // NOTIFICACIONES
+        // ============================================
+        function mostrarNotificacionExito(mensaje) {
+            const notif = document.createElement('div');
+            notif.innerHTML = `<div style="position:fixed; bottom:20px; right:20px; background:#48bb78; color:white; padding:12px 24px; border-radius:50px; font-weight:500; box-shadow:0 5px 15px rgba(0,0,0,0.2); z-index:1001; animation:slideInRight 0.3s ease;">✅ ${mensaje}</div>`;
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 3000);
+        }
+        
+        function mostrarNotificacionAdvertencia(mensaje) {
+            const notif = document.createElement('div');
+            notif.innerHTML = `<div style="position:fixed; bottom:20px; right:20px; background:#ed8936; color:white; padding:12px 24px; border-radius:50px; font-weight:500; box-shadow:0 5px 15px rgba(0,0,0,0.2); z-index:1001; animation:slideInRight 0.3s ease;">⚠️ ${mensaje}</div>`;
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 4000);
+        }
+        
+        function mostrarNotificacionError(mensaje) {
+            const notif = document.createElement('div');
+            notif.innerHTML = `<div style="position:fixed; bottom:20px; right:20px; background:#e53e3e; color:white; padding:12px 24px; border-radius:50px; font-weight:500; box-shadow:0 5px 15px rgba(0,0,0,0.2); z-index:1001; animation:slideInRight 0.3s ease;">❌ ${mensaje}</div>`;
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 4000);
+        }
+        
+        function mostrarNotificacionInfo(mensaje) {
+            const notif = document.createElement('div');
+            notif.innerHTML = `<div style="position:fixed; bottom:20px; right:20px; background:#4299e1; color:white; padding:12px 24px; border-radius:50px; font-weight:500; box-shadow:0 5px 15px rgba(0,0,0,0.2); z-index:1001; animation:slideInRight 0.3s ease;">ℹ️ ${mensaje}</div>`;
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 3000);
+        }
+        
+        // ============================================
+        // INICIALIZACIÓN
+        // ============================================
+        cambiarModulo();
+        connectWebSocket();
+        setInterval(() => { cargarCola(); actualizarEstadoModulo(); }, 3000);
+    </script>
+</body>
+</html>

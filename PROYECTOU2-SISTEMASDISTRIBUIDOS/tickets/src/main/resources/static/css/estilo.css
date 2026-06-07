@@ -1,0 +1,689 @@
+/* ============================================
+   ESTILOS GLOBALES - Clínica Salud
+   Autor: Sistema de Tickets
+   Descripción: Estilos unificados para todas las pantallas
+   ============================================ */
+
+/* ---------- RESET Y BASE ---------- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Fondo general con degradado */
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+}
+
+/* Contenedor principal */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* ---------- HEADER (encabezado) ---------- */
+.header {
+    text-align: center;
+    padding: 40px 20px;
+    color: white;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.logo-icon {
+    font-size: 48px;
+}
+
+.header h1 {
+    font-size: 36px;
+    font-weight: 600;
+}
+
+.subtitle {
+    font-size: 18px;
+    opacity: 0.9;
+}
+
+/* ---------- TARJETAS (cards) ---------- */
+.card {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.card-header h2 {
+    color: #2d3748;
+    font-size: 24px;
+}
+
+.card-icon {
+    font-size: 28px;
+}
+
+/* ---------- FORMULARIOS ---------- */
+.ticket-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-weight: 500;
+    color: #4a5568;
+}
+
+.form-group input,
+.form-group select {
+    padding: 14px 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Información adicional del módulo */
+.modulo-info {
+    margin-top: 5px;
+    font-size: 12px;
+    color: #718096;
+}
+
+/* ---------- BOTONES ---------- */
+.btn {
+    padding: 14px 28px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    width: 100%;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.btn-success {
+    background: white;
+    color: #38a169;
+}
+
+.btn-large {
+    width: 100%;
+    padding: 18px;
+    font-size: 18px;
+}
+
+/* Botones pequeños para tabla */
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    margin: 0 2px;
+}
+
+.btn-llamar {
+    background: #4299e1;
+    color: white;
+}
+
+.btn-llamar:hover {
+    background: #3182ce;
+    transform: translateY(-1px);
+}
+
+.btn-atender {
+    background: #48bb78;
+    color: white;
+}
+
+.btn-atender:hover {
+    background: #38a169;
+    transform: translateY(-1px);
+}
+
+.btn-reset {
+    background: #ed8936;
+    color: white;
+}
+
+.btn-reset:hover {
+    background: #dd6b20;
+    transform: translateY(-1px);
+}
+
+/* ---------- TARJETA DE TICKET GENERADO ---------- */
+.ticket-card {
+    background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%);
+    border-radius: 20px;
+    padding: 25px;
+    text-align: center;
+    color: white;
+    margin-bottom: 30px;
+    animation: slideIn 0.5s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.ticket-number {
+    font-size: 48px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    margin: 15px 0;
+}
+
+.ticket-header {
+    font-size: 18px;
+}
+
+.ticket-message {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+/* ---------- TABLAS ---------- */
+.table-container {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+th {
+    background: #f7fafc;
+    font-weight: 600;
+    color: #4a5568;
+}
+
+/* Celda de acciones (botones alineados) */
+.acciones-cell {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* ---------- BADGES (estados de tickets) ---------- */
+.badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.badge.pending {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.badge.calling {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.badge.attending {
+    background: #fed7aa;
+    color: #9c4221;
+}
+
+.badge.done {
+    background: #c6f6d5;
+    color: #276749;
+}
+
+/* ---------- TARJETA DE LLAMADO (próximo a atender) ---------- */
+.llamado-card {
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 30px;
+    text-align: center;
+    color: white;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.llamado-card .card-header {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+}
+
+.llamado-card .card-header h2 {
+    color: white;
+    margin: 0;
+}
+
+.ticket-grande {
+    font-size: 80px;
+    font-weight: 800;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    letter-spacing: 4px;
+    margin: 20px 0;
+}
+
+.paciente-info {
+    font-size: 18px;
+    color: white;
+    margin: 15px 0;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 12px 24px;
+    border-radius: 50px;
+    display: inline-block;
+}
+
+/* ---------- SELECTOR DE MÓDULO ---------- */
+.modulo-selector {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modulo-selector label {
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.modulo-selector select {
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 2px solid #e2e8f0;
+    font-size: 14px;
+    font-family: 'Poppins', sans-serif;
+    background: white;
+    cursor: pointer;
+    min-width: 220px;
+}
+
+/* Información del módulo (disponible/ocupado) */
+.modulo-info {
+    background: #e2e8f0;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #4a5568;
+    transition: all 0.3s ease;
+}
+
+.modulo-info.ocupado {
+    background: #fed7aa;
+    color: #9c4221;
+}
+
+.refresh-btn {
+    background: #4299e1;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.refresh-btn:hover {
+    background: #3182ce;
+}
+
+/* ---------- ESTADÍSTICAS ---------- */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.stat-value {
+    font-size: 42px;
+    font-weight: 800;
+    color: #667eea;
+}
+
+.stat-label {
+    color: #718096;
+    margin-top: 8px;
+}
+
+/* ---------- CAJA DE INFORMACIÓN ---------- */
+.info-box {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: white;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+/* ---------- MODAL DE RESET ---------- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-container {
+    background: white;
+    border-radius: 24px;
+    max-width: 400px;
+    width: 90%;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    animation: slideInUp 0.3s ease;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+    padding: 20px;
+    text-align: center;
+    color: white;
+}
+
+.modal-header .modal-icon {
+    font-size: 48px;
+    margin-bottom: 10px;
+}
+
+.modal-header h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.modal-body {
+    padding: 25px;
+    text-align: center;
+}
+
+.modal-body .ticket-info {
+    background: #f7fafc;
+    padding: 15px;
+    border-radius: 16px;
+    margin: 15px 0;
+}
+
+.modal-body .ticket-number {
+    font-size: 28px;
+    font-weight: 800;
+    color: #ed8936;
+    font-family: monospace;
+    letter-spacing: 2px;
+}
+
+.modal-body .ticket-patient {
+    color: #4a5568;
+    margin-top: 8px;
+}
+
+.modal-body .warning-text {
+    color: #e53e3e;
+    font-size: 14px;
+    margin-top: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 12px;
+    padding: 20px;
+    border-top: 1px solid #e2e8f0;
+    background: #f7fafc;
+}
+
+.modal-footer button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.modal-footer .btn-cancelar {
+    background: #e2e8f0;
+    color: #4a5568;
+}
+
+.modal-footer .btn-cancelar:hover {
+    background: #cbd5e0;
+}
+
+.modal-footer .btn-confirmar {
+    background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+    color: white;
+}
+
+.modal-footer .btn-confirmar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(237, 137, 54, 0.3);
+}
+
+/* ---------- PANTALLA DE VISUALIZACIÓN (sala de espera) ---------- */
+.display-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.ticket-display {
+    font-size: 120px;
+    font-weight: 800;
+    color: white;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
+    margin: 20px 0;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 20px 40px;
+    border-radius: 30px;
+    transition: all 0.3s ease;
+}
+
+.modulo-display {
+    font-size: 24px;
+    color: white;
+    margin-bottom: 40px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 15px 30px;
+    border-radius: 50px;
+}
+
+.colita {
+    max-width: 600px;
+    margin-top: 50px;
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    width: 90%;
+}
+
+.colita h3 {
+    color: #2d3748;
+    margin-bottom: 15px;
+}
+
+.colita-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 18px;
+}
+
+/* Estado de conexión WebSocket */
+.alert-status {
+    background: #4caf50;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    margin-top: 20px;
+    display: inline-block;
+}
+
+.alert-status.error {
+    background: #f44336;
+}
+
+/* ---------- ANIMACIONES ---------- */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* ---------- RESPONSIVE (móviles) ---------- */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+
+    .header h1 {
+        font-size: 24px;
+    }
+
+    .ticket-number {
+        font-size: 32px;
+    }
+
+    .ticket-grande {
+        font-size: 48px;
+    }
+
+    .stats-row {
+        grid-template-columns: 1fr;
+    }
+
+    .modulo-selector {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .acciones-cell {
+        flex-direction: column;
+    }
+}

@@ -1,0 +1,41 @@
+services:
+  # Base de datos principal
+  postgres-primary:
+    image: postgres:15-alpine
+    container_name: tickets-postgres-primary
+    environment:
+      POSTGRES_DB: tickets_db
+      POSTGRES_USER: clinica_admin
+      POSTGRES_PASSWORD: Clinica2024!
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_primary_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - tickets-network
+
+  # Réplica de la base de datos (requisito del proyecto)
+  postgres-replica:
+    image: postgres:15-alpine
+    container_name: tickets-postgres-replica
+    environment:
+      POSTGRES_DB: tickets_db
+      POSTGRES_USER: clinica_admin
+      POSTGRES_PASSWORD: Clinica2024!
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql/data
+    depends_on:
+      - postgres-primary
+    networks:
+      - tickets-network
+
+volumes:
+  postgres_primary_data:
+  postgres_replica_data:
+
+networks:
+  tickets-network:
+    driver: bridge

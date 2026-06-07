@@ -1,0 +1,6 @@
+com\clinica\tickets\config\WebSocketConfig.class
+com\clinica\tickets\model\Ticket.class
+com\clinica\tickets\service\TicketService.class
+com\clinica\tickets\TicketsApplication.class
+com\clinica\tickets\repository\TicketRepository.class
+com\clinica\tickets\controller\TicketController.class
